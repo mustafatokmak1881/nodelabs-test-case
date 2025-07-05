@@ -21,8 +21,9 @@ const authRoutes = require("./routes/auth.route");
 app.use(express.json());
 app.use(cors());
 
+
 // Auth Routes
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 
 
 // Socket.IO connection handling

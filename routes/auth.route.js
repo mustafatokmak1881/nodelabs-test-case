@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const router = Router();
+const jwt = require("jsonwebtoken");
 
 
 router.post("/register", (req, res) => {
