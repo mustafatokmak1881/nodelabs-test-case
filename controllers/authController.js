@@ -36,6 +36,21 @@ const register = async (req, res) => {
 
         await user.save();
 
+        // Emit socket event for new user registration
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('new_user_registered', {
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    role: user.role,
+                    createdAt: user.createdAt,
+                    isActive: user.isActive
+                }
+            });
+        }
+
         res.status(201).json({
             success: true,
             message: 'User registered successfully',

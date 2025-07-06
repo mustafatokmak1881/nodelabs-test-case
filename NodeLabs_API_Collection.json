@@ -370,9 +370,34 @@
 						"description": "Check if the server is running and healthy."
 					},
 					"response": []
+				},
+				{
+					"name": "Get Online Users Count",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/stats/online-users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"stats",
+								"online-users"
+							]
+						},
+						"description": "Get real-time online users count."
+					},
+					"response": []
 				}
 			],
-			"description": "System health and status endpoints."
+			"description": "System health, status and statistics endpoints."
 		}
 	],
 	"event": [

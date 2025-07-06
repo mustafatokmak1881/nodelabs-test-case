@@ -356,7 +356,11 @@
                 </span>
                 
                 <div class="navbar-nav ms-auto">
-                    <div class="user-info">
+                    <div class="user-info d-flex align-items-center">
+                        <span class="text-light me-3">
+                            <i class="bi bi-circle-fill text-success me-1"></i>
+                            <span id="onlineUsersCount">0</span> çevrimiçi
+                        </span>
                         <span class="text-light me-2">@<span id="currentUsername"></span></span>
                         <span id="currentUserRole" class="user-role"></span>
                         <button class="btn btn-outline-light btn-sm" onclick="showUserList()">
@@ -614,6 +618,7 @@
             // Load initial data
             loadConversations();
             loadUsers();
+            loadOnlineUsersCount();
         }
 
 
@@ -629,6 +634,8 @@
             socket.on('connect', () => {
                 console.log('Connected to server');
                 showToast('Sunucuya bağlandı!', 'success');
+                // Load online users count when connected
+                loadOnlineUsersCount();
             });
 
             socket.on('disconnect', () => {
@@ -669,6 +676,58 @@
                     renderUsersSidebar();
                 }
             });
+
+            socket.on('new_user_registered', (data) => {
+                // Add new user to the users list
+                const newUser = {
+                    _id: data.user.id,
+                    username: data.user.username,
+                    email: data.user.email,
+                    role: data.user.role,
+                    isActive: data.user.isActive,
+                    online: false, // New users start as offline
+                    createdAt: data.user.createdAt
+                };
+                
+                // Add to users array if not already exists
+                if (!users.find(u => u._id === newUser._id)) {
+                    users.push(newUser);
+                    renderUsersSidebar();
+                    showToast(`${newUser.username} kullanıcısı sisteme katıldı!`, 'info');
+                }
+            });
+
+            socket.on('online_users_count', (data) => {
+                // Update online users count in UI
+                updateOnlineUsersCount(data.count);
+                console.log('Online users count updated:', data.count);
+            });
+        }
+
+        // Update online users count in UI
+        function updateOnlineUsersCount(count) {
+            const countElement = document.getElementById('onlineUsersCount');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        }
+
+        // Load online users count from API
+        async function loadOnlineUsersCount() {
+            try {
+                const response = await fetch(`${API_BASE}/stats/online-users`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    updateOnlineUsersCount(data.data.onlineUsers);
+                }
+            } catch (error) {
+                console.error('Load online users count error:', error);
+            }
         }
 
         // Load conversations
@@ -910,10 +969,26 @@
 
                     if (data.success) {
                         input.value = '';
+                        
+                        // Remove "no messages" placeholder if exists
+                        const container = document.getElementById('chatMessages');
+                        if (container.querySelector('.text-center.text-muted')) {
+                            container.innerHTML = '';
+                        }
+                        
                         // Mesajı anlık olarak chat'e ekle
                         addMessageToChat(data.data.message);
+                        
                         // Konuşma listesini güncelle
                         loadConversations();
+                        
+                        // Update conversation info
+                        currentConversation = {
+                            id: data.data.message.conversationId,
+                            otherParticipant: { username: selectedUsername }
+                        };
+                        
+                        showToast('Mesaj gönderildi!', 'success');
                     } else {
                         showToast(data.message || 'Mesaj gönderilemedi!', 'error');
                     }
@@ -1049,35 +1124,52 @@
 
         // Select user for messaging
         async function selectUser(userId, username) {
-            // Remove previous selection
-            document.querySelectorAll('.user-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            // Add selection to clicked user
-            event.currentTarget.classList.add('selected');
-            
-            // Store selected user
-            selectedUserId = userId;
-            selectedUsername = username;
-            
-            // Clear current conversation
-            currentConversation = null;
-            
-            // Update chat header
-            document.getElementById('currentChatTitle').textContent = username;
-            document.getElementById('currentChatInfo').textContent = 'Özel mesaj';
-            
-            // Show message form
-            document.getElementById('messageForm').style.display = 'block';
-            
-            // Load conversation with this user
-            await loadConversationWithUser(userId);
+            try {
+                // Remove previous selection
+                document.querySelectorAll('.user-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Add selection to clicked user
+                event.currentTarget.classList.add('selected');
+                
+                // Store selected user
+                selectedUserId = userId;
+                selectedUsername = username;
+                
+                // Clear current conversation
+                currentConversation = null;
+                
+                // Update chat header
+                document.getElementById('currentChatTitle').textContent = username;
+                document.getElementById('currentChatInfo').textContent = 'Özel mesaj';
+                
+                // Show message form
+                document.getElementById('messageForm').style.display = 'block';
+                
+                // Show loading state
+                document.getElementById('chatMessages').innerHTML = `
+                    <div class="text-center text-muted mt-5">
+                        <div class="loading mx-auto"></div>
+                        <p class="mt-3">Konuşma geçmişi yükleniyor...</p>
+                    </div>
+                `;
+                
+                // Load conversation with this user
+                await loadConversationWithUser(userId);
+                
+            } catch (error) {
+                console.error('Select user error:', error);
+                showToast('Kullanıcı seçilirken hata oluştu!', 'error');
+            }
         }
 
         // Load conversation with specific user
         async function loadConversationWithUser(userId) {
             try {
+                // First, refresh conversations list to get the latest data
+                await loadConversations();
+                
                 // Find existing conversation with this user
                 const conversation = conversations.find(conv => 
                     conv.participants.some(p => p._id === userId) && 
@@ -1085,7 +1177,7 @@
                 );
 
                 if (conversation) {
-                    // Load existing conversation
+                    // Load existing conversation with messages
                     await loadConversation(conversation._id);
                 } else {
                     // Show empty chat for new conversation
@@ -1093,18 +1185,23 @@
                         <div class="text-center text-muted mt-5">
                             <i class="bi bi-chat-dots" style="font-size: 3rem;"></i>
                             <p class="mt-3">Bu kullanıcı ile henüz mesajlaşmadınız</p>
+                            <small class="text-muted">Mesaj göndermek için aşağıdaki formu kullanın</small>
                         </div>
                     `;
+                    
+                    // Clear any existing conversation data
+                    currentConversation = null;
                 }
             } catch (error) {
                 console.error('Load conversation with user error:', error);
+                showToast('Konuşma geçmişi yüklenemedi!', 'error');
             }
         }
 
         // Load conversation by ID
         async function loadConversation(conversationId) {
             try {
-                const response = await fetch(`${API_BASE}/messages/conversation/${conversationId}`, {
+                const response = await fetch(`${API_BASE}/messages/${conversationId}`, {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
                     }
@@ -1113,22 +1210,35 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    currentConversation = data.data.conversation;
                     const messages = data.data.messages;
                     
                     // Render messages
                     renderMessages(messages);
                     
-                    // Mark messages as read
+                    // Mark messages as read if there are messages
                     if (messages.length > 0) {
                         await markMessagesAsRead(conversationId);
                     }
                 } else {
-                    showToast(data.message || 'Konuşma yüklenemedi!', 'error');
+                    // Show empty state if conversation exists but has no messages
+                    document.getElementById('chatMessages').innerHTML = `
+                        <div class="text-center text-muted mt-5">
+                            <i class="bi bi-chat-dots" style="font-size: 3rem;"></i>
+                            <p class="mt-3">Bu konuşmada henüz mesaj yok</p>
+                        </div>
+                    `;
                 }
             } catch (error) {
                 console.error('Load conversation error:', error);
                 showToast('Konuşma yüklenemedi!', 'error');
+                
+                // Show error state
+                document.getElementById('chatMessages').innerHTML = `
+                    <div class="text-center text-muted mt-5">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: #dc3545;"></i>
+                        <p class="mt-3">Konuşma yüklenirken hata oluştu</p>
+                    </div>
+                `;
             }
         }
 

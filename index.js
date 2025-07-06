@@ -6,6 +6,9 @@ const cors = require("cors");
 // Database connection
 const connectDB = require('./config/database');
 
+// Redis connection
+const { connectRedis, setOnlineUsersCount, getOnlineUsersCount, incrementOnlineUsers, decrementOnlineUsers } = require('./config/redis');
+
 // Constants
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -19,6 +22,9 @@ const io = require("socket.io")(server, {
 
 // Connect to MongoDB
 connectDB();
+
+// Connect to Redis
+connectRedis();
 
 // Middleware Files
 const authRoutes = require("./routes/auth.route");
@@ -48,8 +54,48 @@ app.get("/health", (req, res) => {
 // Online users tracking
 const onlineUsers = new Set();
 
+// Function to emit online users count
+const emitOnlineUsersCount = async () => {
+    try {
+        const count = await getOnlineUsersCount();
+        io.emit('online_users_count', { count });
+        console.log(`Online users: ${count}`);
+    } catch (error) {
+        console.error('Error emitting online users count:', error);
+        // Fallback to local count if Redis fails
+        const localCount = onlineUsers.size;
+        io.emit('online_users_count', { count: localCount });
+        console.log(`Online users (fallback): ${localCount}`);
+    }
+};
+
+// Online users count endpoint
+app.get("/api/stats/online-users", async (req, res) => {
+    try {
+        const count = await getOnlineUsersCount();
+        res.json({
+            success: true,
+            data: {
+                onlineUsers: count,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Get online users count error:', error);
+        // Fallback to local count if Redis fails
+        const localCount = onlineUsers.size;
+        res.json({
+            success: true,
+            data: {
+                onlineUsers: localCount,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
+
 // Socket.IO connection handling
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
     // Kullanıcı kimliği almak için auth token kontrolü
     let userId = null;
     try {
@@ -63,8 +109,14 @@ io.on("connection", (socket) => {
                 // Kullanıcıyı kendi odasına ekle
                 socket.join(`user_${userId}`);
                 
+                // Redis'te online kullanıcı sayısını artır
+                await incrementOnlineUsers();
+                
                 // Diğer kullanıcılara online durumunu bildir
                 socket.broadcast.emit('user_online', { userId });
+                
+                // Online kullanıcı sayısını güncelle
+                await emitOnlineUsersCount();
             }
         }
     } catch (e) {
@@ -72,11 +124,18 @@ io.on("connection", (socket) => {
         console.log('Socket auth error:', e.message);
     }
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
         if (userId) {
             onlineUsers.delete(userId);
+            
+            // Redis'te online kullanıcı sayısını azalt
+            await decrementOnlineUsers();
+            
             // Diğer kullanıcılara offline durumunu bildir
             socket.broadcast.emit('user_offline', { userId });
+            
+            // Online kullanıcı sayısını güncelle
+            await emitOnlineUsersCount();
         }
         console.log("User disconnected");
     });

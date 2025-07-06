@@ -158,6 +158,23 @@ Bu sayede login sonrası token otomatik olarak environment'a kaydedilir ve diğe
 - **PUT** `/api/messages/:messageId/read`
 - **Açıklama:** Belirli mesajı okundu olarak işaretler.
 
+## 📊 İstatistik API'leri
+
+### Online Kullanıcı Sayısı
+- **GET** `/api/stats/online-users`
+- **Headers:** `Authorization: Bearer <token>`
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "onlineUsers": 5,
+      "timestamp": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+- **Açıklama:** Anlık online kullanıcı sayısını döndürür.
+
 ### Kullanım Örneği
 
 1. **İki kullanıcı oluşturun ve giriş yapın**
@@ -251,6 +268,23 @@ Uygulama aşağıdaki environment variable'ları kullanır:
 - **user_offline**: Kullanıcı offline olduğunda
   ```javascript
   { userId: "user_id" }
+  ```
+- **online_users_count**: Online kullanıcı sayısı güncellendiğinde
+  ```javascript
+  { count: 5 }
+  ```
+- **new_user_registered**: Yeni kullanıcı kaydı yapıldığında
+  ```javascript
+  {
+    user: {
+      id: "user_id",
+      username: "kullanıcı_adı",
+      email: "email@example.com",
+      role: "user",
+      isActive: true,
+      createdAt: "2024-01-01T00:00:00.000Z"
+    }
+  }
   ```
 
 ### Frontend Socket.IO Kullanımı
