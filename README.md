@@ -4,6 +4,46 @@ Bu proje Express.js, Socket.IO, MongoDB, Redis ve RabbitMQ kullanarak geliştiri
 
 ## 🚀 Docker ile Çalıştırma
 
+## 📋 Postman Collection
+
+Bu proje için hazırlanmış Postman collection'ı kullanarak tüm API endpoint'lerini kolayca test edebilirsiniz.
+
+### Kurulum:
+1. **Collection'ı İçe Aktar:**
+   - Postman'de "Import" butonuna tıklayın
+   - `NodeLabs_API_Collection.json` dosyasını seçin
+
+2. **Environment'ı İçe Aktar:**
+   - Postman'de "Import" butonuna tıklayın
+   - `NodeLabs_Environment.json` dosyasını seçin
+   - Environment'ı aktif hale getirin
+
+3. **Test Sırası:**
+   - **Register User** → Yeni kullanıcı kaydı
+   - **Login User** → Giriş yap ve token al
+   - **Get Current User** → Profil bilgilerini görüntüle
+   - **Refresh Token** → Token'ı yenile
+   - **Logout User** → Çıkış yap
+   - **Get All Users** → Tüm kullanıcıları listele (admin gerekli)
+
+### Environment Variables:
+- `base_url`: http://localhost:3000
+- `auth_token`: Login sonrası otomatik doldurulur
+- `username`, `email`, `password`: Test kullanıcı bilgileri
+
+### Otomatik Token Yönetimi:
+Login endpoint'inde "Tests" sekmesinde şu kodu ekleyin:
+```javascript
+if (pm.response.code === 200) {
+    const response = pm.response.json();
+    if (response.data && response.data.token) {
+        pm.environment.set("auth_token", response.data.token);
+    }
+}
+```
+
+Bu sayede login sonrası token otomatik olarak environment'a kaydedilir ve diğer endpoint'lerde kullanılır.
+
 ### Gereksinimler
 - Docker
 - Docker Compose

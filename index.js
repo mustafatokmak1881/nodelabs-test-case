@@ -22,6 +22,7 @@ connectDB();
 
 // Middleware Files
 const authRoutes = require("./routes/auth.route");
+const userRoutes = require("./routes/user.route");
 
 // Middlewares
 app.use(express.json());
@@ -29,6 +30,7 @@ app.use(cors());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

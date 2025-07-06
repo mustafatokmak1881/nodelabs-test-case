@@ -129,6 +129,68 @@ const login = async (req, res) => {
     }
 };
 
+// @desc    Refresh token
+// @route   POST /api/auth/refresh
+// @access  Private
+const refreshToken = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        if (!user.isActive) {
+            return res.status(401).json({
+                success: false,
+                message: 'Account is deactivated'
+            });
+        }
+
+        // Generate new token
+        const newToken = user.generateAuthToken();
+
+        res.json({
+            success: true,
+            message: 'Token refreshed successfully',
+            data: {
+                token: newToken
+            }
+        });
+
+    } catch (error) {
+        console.error('Refresh token error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during token refresh'
+        });
+    }
+};
+
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Private
+const logout = async (req, res) => {
+    try {
+        // In a real application, you might want to blacklist the token
+        // For now, we'll just return a success message
+        res.json({
+            success: true,
+            message: 'Logout successful'
+        });
+
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during logout'
+        });
+    }
+};
+
 // @desc    Get current user
 // @route   GET /api/auth/me
 // @access  Private
@@ -160,5 +222,7 @@ const getMe = async (req, res) => {
 module.exports = {
     register,
     login,
+    refreshToken,
+    logout,
     getMe
 }; 
