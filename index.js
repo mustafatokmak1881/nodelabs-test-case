@@ -60,15 +60,23 @@ io.on("connection", (socket) => {
             userId = decoded.id;
             if (userId) {
                 onlineUsers.add(userId);
+                // Kullanıcıyı kendi odasına ekle
+                socket.join(`user_${userId}`);
+                
+                // Diğer kullanıcılara online durumunu bildir
+                socket.broadcast.emit('user_online', { userId });
             }
         }
     } catch (e) {
         // Token yoksa veya hatalıysa online ekleme
+        console.log('Socket auth error:', e.message);
     }
 
     socket.on("disconnect", () => {
         if (userId) {
             onlineUsers.delete(userId);
+            // Diğer kullanıcılara offline durumunu bildir
+            socket.broadcast.emit('user_offline', { userId });
         }
         console.log("User disconnected");
     });
@@ -76,6 +84,7 @@ io.on("connection", (socket) => {
 
 // Online users'ı diğer dosyalara aç
 app.set('onlineUsers', onlineUsers);
+app.set('io', io);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

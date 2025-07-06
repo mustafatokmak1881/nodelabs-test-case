@@ -65,7 +65,24 @@
 						},
 						"description": "Login with username and password. Returns user data and JWT token."
 					},
-					"response": []
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.environment.set(\"auth_token\", response.data.token);",
+									"        console.log('Token saved to environment');",
+									"    }",
+									"}"
+								]
+							}
+						}
+					]
 				},
 				{
 					"name": "Get Current User",
@@ -115,7 +132,24 @@
 						},
 						"description": "Refresh the current JWT token. Returns new token."
 					},
-					"response": []
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.environment.set(\"auth_token\", response.data.token);",
+									"        console.log('Token refreshed and saved to environment');",
+									"    }",
+									"}"
+								]
+							}
+						}
+					]
 				},
 				{
 					"name": "Logout User",
@@ -169,12 +203,12 @@
 								"list"
 							]
 						},
-						"description": "Get list of all users. Requires admin role."
+						"description": "Get list of all users with online status. Excludes current user from the list. Requires authentication."
 					},
 					"response": []
 				}
 			],
-			"description": "User management endpoints (admin only)."
+			"description": "User management endpoints for listing users with online status."
 		},
 		{
 			"name": "Message Management",

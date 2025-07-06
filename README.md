@@ -4,6 +4,88 @@ Bu proje Express.js, Socket.IO, MongoDB, Redis ve RabbitMQ kullanarak geliştiri
 
 ## 🚀 Docker ile Çalıştırma
 
+### Gereksinimler
+- Docker
+- Docker Compose
+
+### Kurulum ve Çalıştırma
+
+1. **Projeyi klonlayın:**
+```bash
+git clone <repository-url>
+cd nodelabs-test-case
+```
+
+2. **Docker Compose ile servisleri başlatın:**
+```bash
+docker-compose up -d
+```
+
+3. **Servislerin durumunu kontrol edin:**
+```bash
+docker-compose ps
+```
+
+4. **Logları görüntüleyin:**
+```bash
+docker-compose logs -f app
+```
+
+### Erişim Bilgileri
+
+- **Node.js Uygulaması:** http://localhost:3000
+- **Frontend:** http://localhost:3000 (aynı port)
+- **RabbitMQ Management:** http://localhost:15672
+  - Kullanıcı adı: `admin`
+  - Şifre: `password123`
+- **MongoDB Express:** http://localhost:8081
+  - Kullanıcı adı: `admin`
+  - Şifre: `password123`
+- **MongoDB:** localhost:27017
+- **Redis:** localhost:6379
+
+### Servis Yönetimi
+
+**Tüm servisleri durdurmak:**
+```bash
+docker-compose down
+```
+
+**Servisleri ve verileri tamamen silmek:**
+```bash
+docker-compose down -v
+```
+
+**Belirli bir servisi yeniden başlatmak:**
+```bash
+docker-compose restart app
+```
+
+**Servisleri yeniden oluşturmak:**
+```bash
+docker-compose up --build
+```
+
+## 🌐 Frontend Özellikleri
+
+### Real-time Mesajlaşma
+- **Socket.IO entegrasyonu**: Anlık mesaj gönderme/alma
+- **Online/Offline durumu**: Kullanıcıların bağlantı durumu
+- **Yeni mesaj uyarısı**: Aktif konuşmada olmayan mesajlar için yanıp sönen uyarı
+- **Kullanıcı seçimi**: Sağ sidebar'dan kullanıcı seçerek direkt mesajlaşma
+
+### Kullanıcı Arayüzü
+- **Responsive tasarım**: Mobil ve masaüstü uyumlu
+- **Modern UI**: Bootstrap 5 ile güzel görünüm
+- **Kullanıcı listesi**: Online/offline durumu ile birlikte
+- **Konuşma geçmişi**: Tüm mesajların görüntülenmesi
+- **Gerçek zamanlı güncellemeler**: Mesajlar ve kullanıcı durumları anlık güncellenir
+
+### Güvenlik
+- **JWT authentication**: Güvenli token tabanlı kimlik doğrulama
+- **Kullanıcı filtreleme**: Kullanıcı listesinde kendiniz görünmez
+- **Otomatik token yenileme**: Token süresi dolduğunda otomatik yenileme
+
 ## 📋 Postman Collection
 
 Bu proje için hazırlanmış Postman collection'ı kullanarak tüm API endpoint'lerini kolayca test edebilirsiniz.
@@ -39,78 +121,9 @@ Bu proje için hazırlanmış Postman collection'ı kullanarak tüm API endpoint
 - `message_id`: Mesaj ID'si
 
 ### Otomatik Token Yönetimi:
-Login endpoint'inde "Tests" sekmesinde şu kodu ekleyin:
-```javascript
-if (pm.response.code === 200) {
-    const response = pm.response.json();
-    if (response.data && response.data.token) {
-        pm.environment.set("auth_token", response.data.token);
-    }
-}
-```
+Postman collection'ında Login ve Refresh Token endpoint'lerine otomatik token yönetimi eklenmiştir. Login yaptıktan sonra token otomatik olarak environment'a kaydedilir ve diğer endpoint'lerde kullanılır.
 
 Bu sayede login sonrası token otomatik olarak environment'a kaydedilir ve diğer endpoint'lerde kullanılır.
-
-### Gereksinimler
-- Docker
-- Docker Compose
-
-### Kurulum ve Çalıştırma
-
-1. **Projeyi klonlayın:**
-```bash
-git clone <repository-url>
-cd nodelabs-test-case
-```
-
-2. **Docker Compose ile servisleri başlatın:**
-```bash
-docker-compose up -d
-```
-
-3. **Servislerin durumunu kontrol edin:**
-```bash
-docker-compose ps
-```
-
-4. **Logları görüntüleyin:**
-```bash
-docker-compose logs -f app
-```
-
-### Erişim Bilgileri
-
-- **Node.js Uygulaması:** http://localhost:3000
-- **RabbitMQ Management:** http://localhost:15672
-  - Kullanıcı adı: `admin`
-  - Şifre: `password123`
-- **MongoDB Express:** http://localhost:8081
-  - Kullanıcı adı: `admin`
-  - Şifre: `password123`
-- **MongoDB:** localhost:27017
-- **Redis:** localhost:6379
-
-### Servis Yönetimi
-
-**Tüm servisleri durdurmak:**
-```bash
-docker-compose down
-```
-
-**Servisleri ve verileri tamamen silmek:**
-```bash
-docker-compose down -v
-```
-
-**Belirli bir servisi yeniden başlatmak:**
-```bash
-docker-compose restart app
-```
-
-**Servisleri yeniden oluşturmak:**
-```bash
-docker-compose up --build
-```
 
 ## 📨 Mesaj Yönetimi API'leri
 
@@ -212,6 +225,52 @@ Uygulama aşağıdaki environment variable'ları kullanır:
 - **Logs:** `docker-compose logs` komutu ile logları görüntüleyebilirsiniz
 - **Metrics:** RabbitMQ Management UI'dan queue metriklerini takip edebilirsiniz
 
+## 🔌 Socket.IO Events
+
+### Client Events (Frontend → Backend)
+- **Connection**: Socket.IO bağlantısı kurulur
+- **Disconnect**: Bağlantı kesilir
+
+### Server Events (Backend → Frontend)
+- **new_message**: Yeni mesaj geldiğinde
+  ```javascript
+  {
+    conversationId: "conversation_id",
+    message: {
+      id: "message_id",
+      content: "Mesaj içeriği",
+      sender: { _id: "user_id", username: "kullanıcı_adı" },
+      createdAt: "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+- **user_online**: Kullanıcı online olduğunda
+  ```javascript
+  { userId: "user_id" }
+  ```
+- **user_offline**: Kullanıcı offline olduğunda
+  ```javascript
+  { userId: "user_id" }
+  ```
+
+### Frontend Socket.IO Kullanımı
+```javascript
+// Bağlantı kurma
+const socket = io('http://localhost:3000', {
+  auth: { token: 'jwt_token' }
+});
+
+// Yeni mesaj dinleme
+socket.on('new_message', (data) => {
+  console.log('Yeni mesaj:', data.message);
+});
+
+// Kullanıcı durumu dinleme
+socket.on('user_online', (data) => {
+  console.log('Kullanıcı online:', data.userId);
+});
+```
+
 ## 🛠️ Troubleshooting
 
 ### Yaygın Sorunlar
@@ -221,6 +280,8 @@ Uygulama aşağıdaki environment variable'ları kullanır:
 2. **MongoDB bağlantı hatası:** MongoDB'nin tamamen başlamasını bekleyin.
 
 3. **Redis bağlantı hatası:** Redis container'ının çalıştığından emin olun.
+
+4. **Socket.IO bağlantı hatası:** JWT token'ın geçerli olduğundan emin olun.
 
 ### Log Kontrolü
 

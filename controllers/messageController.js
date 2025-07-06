@@ -88,20 +88,36 @@ const sendMessage = async (req, res) => {
         // Populate sender info for response
         await message.populate('sender', 'username');
 
+        // Emit socket event for real-time updates
+        const io = req.app.get('io');
+        io.to(`user_${recipientId}`).emit('new_message', {
+            conversationId: conversation._id,
+            message: {
+                id: message._id,
+                content: message.content,
+                sender: {
+                    _id: message.sender._id,
+                    username: message.sender.username
+                },
+                createdAt: message.createdAt
+            }
+        });
+
+
+
         res.status(201).json({
             success: true,
+            message: 'Message sent successfully',
             data: {
                 message: {
                     id: message._id,
                     content: message.content,
-                    sender: message.sender,
-                    conversationId: message.conversationId,
-                    isRead: message.isRead,
+                    sender: {
+                        _id: message.sender._id,
+                        username: message.sender.username
+                    },
+                    conversationId: conversation._id,
                     createdAt: message.createdAt
-                },
-                conversation: {
-                    id: conversation._id,
-                    participants: conversation.participants
                 }
             }
         });
