@@ -23,6 +23,8 @@ connectDB();
 // Middleware Files
 const authRoutes = require("./routes/auth.route");
 const userRoutes = require("./routes/user.route");
+const messageRoutes = require("./routes/message.route");
+const conversationRoutes = require("./routes/conversation.route");
 
 // Middlewares
 app.use(express.json());
@@ -31,6 +33,8 @@ app.use(cors());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/conversations", conversationRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -41,25 +45,37 @@ app.get("/health", (req, res) => {
     });
 });
 
+// Online users tracking
+const onlineUsers = new Set();
+
 // Socket.IO connection handling
 io.on("connection", (socket) => {
-    console.log("A user connected");
-    socket.join("generalRoom");
-    socket.emit("message", "Welcome to the server");
-
-    socket.on("message", (data) => {
-        console.log("Received message:", data);
-        // Broadcast message to all users in the room
-        io.to("generalRoom").emit("message", {
-            message: data,
-            timestamp: new Date().toISOString()
-        });
-    });
+    // Kullanıcı kimliği almak için auth token kontrolü
+    let userId = null;
+    try {
+        const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+        if (token) {
+            const jwt = require('jsonwebtoken');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+            userId = decoded.id;
+            if (userId) {
+                onlineUsers.add(userId);
+            }
+        }
+    } catch (e) {
+        // Token yoksa veya hatalıysa online ekleme
+    }
 
     socket.on("disconnect", () => {
+        if (userId) {
+            onlineUsers.delete(userId);
+        }
         console.log("User disconnected");
     });
 });
+
+// Online users'ı diğer dosyalara aç
+app.set('onlineUsers', onlineUsers);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

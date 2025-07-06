@@ -25,11 +25,18 @@ Bu proje için hazırlanmış Postman collection'ı kullanarak tüm API endpoint
    - **Refresh Token** → Token'ı yenile
    - **Logout User** → Çıkış yap
    - **Get All Users** → Tüm kullanıcıları listele (admin gerekli)
+   - **Send Message** → Yeni mesaj gönder
+   - **Get User Conversations** → Kullanıcının konuşmalarını listele
+   - **Get Conversation Messages** → Belirli konuşmanın mesajlarını görüntüle
+   - **Mark Message as Read** → Mesajı okundu olarak işaretle
 
 ### Environment Variables:
 - `base_url`: http://localhost:3000
 - `auth_token`: Login sonrası otomatik doldurulur
 - `username`, `email`, `password`: Test kullanıcı bilgileri
+- `recipient_user_id`: Mesaj göndermek için alıcı kullanıcı ID'si
+- `conversation_id`: Konuşma ID'si
+- `message_id`: Mesaj ID'si
 
 ### Otomatik Token Yönetimi:
 Login endpoint'inde "Tests" sekmesinde şu kodu ekleyin:
@@ -104,6 +111,59 @@ docker-compose restart app
 ```bash
 docker-compose up --build
 ```
+
+## 📨 Mesaj Yönetimi API'leri
+
+### Endpoint'ler
+
+#### Mesaj Gönderme
+- **POST** `/api/messages/send`
+- **Body:**
+  ```json
+  {
+    "content": "Mesaj içeriği",
+    "recipientId": "alıcı_kullanıcı_id"
+  }
+  ```
+- **Açıklama:** Yeni mesaj gönderir. Eğer konuşma yoksa otomatik oluşturur.
+
+#### Konuşma Mesajlarını Listeleme
+- **GET** `/api/messages/:conversationId?page=1&limit=50`
+- **Query Parameters:**
+  - `page`: Sayfa numarası (varsayılan: 1)
+  - `limit`: Sayfa başına mesaj sayısı (varsayılan: 50)
+- **Açıklama:** Belirli konuşmanın mesajlarını sayfalama ile listeler.
+
+#### Kullanıcı Konuşmalarını Listeleme
+- **GET** `/api/conversations?page=1&limit=20`
+- **Query Parameters:**
+  - `page`: Sayfa numarası (varsayılan: 1)
+  - `limit`: Sayfa başına konuşma sayısı (varsayılan: 20)
+- **Açıklama:** Kullanıcının tüm konuşmalarını listeler.
+
+#### Mesajı Okundu Olarak İşaretleme
+- **PUT** `/api/messages/:messageId/read`
+- **Açıklama:** Belirli mesajı okundu olarak işaretler.
+
+### Kullanım Örneği
+
+1. **İki kullanıcı oluşturun ve giriş yapın**
+2. **İlk kullanıcı ile mesaj gönderin:**
+   ```json
+   POST /api/messages/send
+   {
+     "content": "Merhaba!",
+     "recipientId": "ikinci_kullanıcı_id"
+   }
+   ```
+3. **Konuşmaları listeleyin:**
+   ```json
+   GET /api/conversations
+   ```
+4. **Mesajları görüntüleyin:**
+   ```json
+   GET /api/messages/conversation_id
+   ```
 
 ## 📁 Proje Yapısı
 

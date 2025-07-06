@@ -5,12 +5,19 @@ const User = require('../models/User');
 // @access  Private (Admin only)
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find({}).select('username -_id');
+        const users = await User.find({}).select('username _id role');
+        const onlineUsers = req.app.get('onlineUsers') || new Set();
+        const usersWithOnline = users.map(user => ({
+            _id: user._id,
+            username: user.username,
+            role: user.role,
+            online: onlineUsers.has(user._id.toString())
+        }));
 
         res.json({
             success: true,
             count: users.length,
-            data: { users }
+            data: { users: usersWithOnline }
         });
 
     } catch (error) {

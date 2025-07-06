@@ -177,6 +177,146 @@
 			"description": "User management endpoints (admin only)."
 		},
 		{
+			"name": "Message Management",
+			"item": [
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Hello! This is a test message.\",\n    \"recipientId\": \"{{recipient_user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/messages/send",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"send"
+							]
+						},
+						"description": "Send a new message to a user. Creates conversation if it doesn't exist."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Conversation Messages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/messages/{{conversation_id}}?page=1&limit=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"{{conversation_id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Get messages for a specific conversation with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Message as Read",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/messages/{{message_id}}/read",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"{{message_id}}",
+								"read"
+							]
+						},
+						"description": "Mark a specific message as read."
+					},
+					"response": []
+				}
+			],
+			"description": "Message management endpoints for sending and managing messages."
+		},
+		{
+			"name": "Conversation Management",
+			"item": [
+				{
+					"name": "Get User Conversations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/conversations?page=1&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"conversations"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Get all conversations for the authenticated user with pagination."
+					},
+					"response": []
+				}
+			],
+			"description": "Conversation management endpoints for listing user conversations."
+		},
+		{
 			"name": "System",
 			"item": [
 				{
