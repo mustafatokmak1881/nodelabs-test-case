@@ -1,20 +1,13 @@
-const { Router } = require("express");
-const router = Router();
-const jwt = require("jsonwebtoken");
+const express = require('express');
+const router = express.Router();
+const { register, login, getMe } = require('../controllers/authController');
+const { protect } = require('../middlewares/auth');
 
+// Public routes
+router.post('/register', register);
+router.post('/login', login);
 
-router.post("/register", (req, res) => {
-    const { username, email, password } = req.body;
-    console.log(username, email, password);
-    res.send("Registered");
-});
-
-router.post("/login", (req, res) => {
-    const { username, password } = req.body;
-    console.log(username, password);
-    res.send("Logged in");
-});
-
-
+// Protected routes
+router.get('/me', protect, getMe);
 
 module.exports = router;

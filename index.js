@@ -3,6 +3,9 @@ const http = require("http");
 const express = require("express");
 const cors = require("cors");
 
+// Database connection
+const connectDB = require('./config/database');
+
 // Constants
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -14,6 +17,9 @@ const io = require("socket.io")(server, {
     }
 });
 
+// Connect to MongoDB
+connectDB();
+
 // Middleware Files
 const authRoutes = require("./routes/auth.route");
 
@@ -21,10 +27,17 @@ const authRoutes = require("./routes/auth.route");
 app.use(express.json());
 app.use(cors());
 
-
-// Auth Routes
+// Routes
 app.use("/api/auth", authRoutes);
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.json({
+        success: true,
+        message: "Server is running",
+        timestamp: new Date().toISOString()
+    });
+});
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
@@ -33,7 +46,12 @@ io.on("connection", (socket) => {
     socket.emit("message", "Welcome to the server");
 
     socket.on("message", (data) => {
-        console.log(data);
+        console.log("Received message:", data);
+        // Broadcast message to all users in the room
+        io.to("generalRoom").emit("message", {
+            message: data,
+            timestamp: new Date().toISOString()
+        });
     });
 
     socket.on("disconnect", () => {
@@ -41,8 +59,26 @@ io.on("connection", (socket) => {
     });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        success: false,
+        message: 'Something went wrong!'
+    });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Route not found'
+    });
+});
 
 // Listen   
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`API Base URL: http://localhost:${PORT}/api`);
 });

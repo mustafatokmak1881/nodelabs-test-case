@@ -1,0 +1,41 @@
+{
+  "name": "nodelabs-test-case",
+  "version": "1.0.0",
+  "description": "Node.js application with Express, Socket.IO, MongoDB, Redis, and RabbitMQ",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "socket.io",
+    "mongodb",
+    "redis",
+    "rabbitmq",
+    "docker"
+  ],
+  "author": "Mustafa TOKMAK",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "socket.io": "^4.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mustafatokmak1881/nodelabs-test-case.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mustafatokmak1881/nodelabs-test-case/issues"
+  },
+  "homepage": "https://github.com/mustafatokmak1881/nodelabs-test-case#readme"
+}
