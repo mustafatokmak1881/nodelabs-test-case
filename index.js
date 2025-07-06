@@ -157,6 +157,13 @@ app.use('*', (req, res) => {
     });
 });
 
+// RabbitMQ Consumer'ı başlat
+const { startConsumer, setSocketIO } = require('./jobs/consumeAutoMessages');
+require('./jobs/scheduleAutoMessages');
+require('./jobs/queueAutoMessages');
+setSocketIO(io);
+startConsumer();
+
 // Listen   
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
