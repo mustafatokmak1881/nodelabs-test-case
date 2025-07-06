@@ -789,6 +789,17 @@
         async function selectConversation(conversationId) {
             currentConversation = conversations.find(c => c.id === conversationId);
             
+            if (!currentConversation) {
+                // Uyarı verme, sadece boş geçmiş göster
+                document.getElementById('chatMessages').innerHTML = `
+                    <div class="text-center text-muted mt-5">
+                        <i class="bi bi-chat-dots" style="font-size: 3rem;"></i>
+                        <p class="mt-3">Bu konuşmada henüz mesaj yok</p>
+                    </div>
+                `;
+                return;
+            }
+            
             // Remove highlight from the selected conversation
             const conversationElement = document.getElementById(`conversation-${conversationId}`);
             if (conversationElement) {
@@ -820,6 +831,11 @@
 
                 if (data.success) {
                     renderMessages(data.data.messages);
+                    
+                    // Mark messages as read if there are messages
+                    if (data.data.messages.length > 0) {
+                        await markMessagesAsRead(conversationId);
+                    }
                 }
             } catch (error) {
                 console.error('Load messages error:', error);
@@ -924,14 +940,14 @@
             }
 
             const messageElement = document.createElement('div');
-            messageElement.className = `message ${message.sender._id === currentUser._id ? 'own' : 'other'}`;
+            messageElement.className = `message ${message.sender._id === currentUser._id ? 'message-own' : 'message-other'} mb-3`;
             messageElement.innerHTML = `
                 <div class="message-content">
-                    <div>${message.content}</div>
-                    <div class="message-info">
-                        ${new Date(message.createdAt).toLocaleString('tr-TR')}
-                        ${message.isRead ? ' <i class="bi bi-check2-all text-primary"></i>' : ''}
-                    </div>
+                    <div class="message-text">${message.content}</div>
+                    <div class="message-time">${new Date(message.createdAt).toLocaleTimeString('tr-TR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })}</div>
                 </div>
             `;
 
@@ -1087,7 +1103,7 @@
             container.innerHTML = users
                 .filter(user => user._id !== currentUser._id) // Kendini gösterme
                 .map(user => `
-                    <div class="user-item p-2 border-bottom" onclick="selectUser('${user._id}', '${user.username}')" style="cursor: pointer;">
+                    <div class="user-item p-2 border-bottom" onclick="selectUser('${user._id}', '${user.username}', event)" style="cursor: pointer;">
                         <div class="d-flex align-items-center">
                             <div class="user-avatar me-2 position-relative">
                                 ${user.username.charAt(0).toUpperCase()}
@@ -1123,7 +1139,7 @@
         }
 
         // Select user for messaging
-        async function selectUser(userId, username) {
+        async function selectUser(userId, username, event) {
             try {
                 // Remove previous selection
                 document.querySelectorAll('.user-item').forEach(item => {
@@ -1131,7 +1147,9 @@
                 });
                 
                 // Add selection to clicked user
-                event.currentTarget.classList.add('selected');
+                if (event && event.currentTarget) {
+                    event.currentTarget.classList.add('selected');
+                }
                 
                 // Store selected user
                 selectedUserId = userId;
@@ -1172,13 +1190,12 @@
                 
                 // Find existing conversation with this user
                 const conversation = conversations.find(conv => 
-                    conv.participants.some(p => p._id === userId) && 
-                    conv.participants.length === 2
+                    conv.otherParticipant && conv.otherParticipant.id === userId
                 );
 
                 if (conversation) {
                     // Load existing conversation with messages
-                    await loadConversation(conversation._id);
+                    await loadConversation(conversation.id);
                 } else {
                     // Show empty chat for new conversation
                     document.getElementById('chatMessages').innerHTML = `
@@ -1245,12 +1262,30 @@
         // Mark messages as read
         async function markMessagesAsRead(conversationId) {
             try {
-                await fetch(`${API_BASE}/messages/read/${conversationId}`, {
-                    method: 'PUT',
+                // Get messages for this conversation first
+                const response = await fetch(`${API_BASE}/messages/${conversationId}`, {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
                     }
                 });
+
+                const data = await response.json();
+                
+                if (data.success && data.data.messages.length > 0) {
+                    // Mark all unread messages as read
+                    const unreadMessages = data.data.messages.filter(msg => 
+                        !msg.isRead && msg.sender._id !== currentUser._id
+                    );
+                    
+                    for (const message of unreadMessages) {
+                        await fetch(`${API_BASE}/messages/${message._id}/read`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${authToken}`
+                            }
+                        });
+                    }
+                }
             } catch (error) {
                 console.error('Mark messages as read error:', error);
             }

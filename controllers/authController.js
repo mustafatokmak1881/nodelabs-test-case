@@ -23,14 +23,11 @@ const register = async (req, res) => {
             });
         }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
         // Create user
         const user = new User({
             username,
             email,
-            password: hashedPassword,
+            password: password,
             role: 'user'
         });
 
@@ -100,8 +97,8 @@ const login = async (req, res) => {
             });
         }
 
-        // Check if user exists and include password for comparison
-        const user = await User.findOne({ username }).select('+password');
+        // Check if user exists
+        const user = await User.findOne({ username });
 
         if (!user) {
             return res.status(401).json({

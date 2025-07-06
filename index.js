@@ -31,6 +31,7 @@ const authRoutes = require("./routes/auth.route");
 const userRoutes = require("./routes/user.route");
 const messageRoutes = require("./routes/message.route");
 const conversationRoutes = require("./routes/conversation.route");
+const apiLimiter = require('./middlewares/rateLimit');
 
 // Middlewares
 app.use(express.json());
@@ -41,6 +42,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/conversations", conversationRoutes);
+
+// Rate limiting middleware (sadece API için)
+app.use('/api', apiLimiter);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -94,47 +98,38 @@ app.get("/api/stats/online-users", async (req, res) => {
     }
 });
 
+function verifySocketJWT(socket) {
+    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+    if (!token) throw new Error('No token');
+    const jwt = require('jsonwebtoken');
+    return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+}
+
 // Socket.IO connection handling
 io.on("connection", async (socket) => {
-    // Kullanıcı kimliği almak için auth token kontrolü
     let userId = null;
     try {
-        const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-        if (token) {
-            const jwt = require('jsonwebtoken');
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-            userId = decoded.id;
-            if (userId) {
-                onlineUsers.add(userId);
-                // Kullanıcıyı kendi odasına ekle
-                socket.join(`user_${userId}`);
-                
-                // Redis'te online kullanıcı sayısını artır
-                await incrementOnlineUsers();
-                
-                // Diğer kullanıcılara online durumunu bildir
-                socket.broadcast.emit('user_online', { userId });
-                
-                // Online kullanıcı sayısını güncelle
-                await emitOnlineUsersCount();
-            }
+        const decoded = verifySocketJWT(socket);
+        userId = decoded.id;
+        if (userId) {
+            onlineUsers.add(userId);
+            socket.join(`user_${userId}`);
+            await incrementOnlineUsers();
+            socket.broadcast.emit('user_online', { userId });
+            await emitOnlineUsersCount();
         }
     } catch (e) {
-        // Token yoksa veya hatalıysa online ekleme
         console.log('Socket auth error:', e.message);
+        socket.emit('auth_error', { message: 'Geçersiz veya eksik token.' });
+        socket.disconnect(true);
+        return;
     }
 
     socket.on("disconnect", async () => {
         if (userId) {
             onlineUsers.delete(userId);
-            
-            // Redis'te online kullanıcı sayısını azalt
             await decrementOnlineUsers();
-            
-            // Diğer kullanıcılara offline durumunu bildir
             socket.broadcast.emit('user_offline', { userId });
-            
-            // Online kullanıcı sayısını güncelle
             await emitOnlineUsersCount();
         }
         console.log("User disconnected");
