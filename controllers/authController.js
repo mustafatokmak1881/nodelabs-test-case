@@ -66,10 +66,18 @@ const register = async (req, res) => {
 // @access  Public
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { username, password } = req.body;
+
+        // Check if username is provided
+        if (!username) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username is required'
+            });
+        }
 
         // Check if user exists and include password for comparison
-        const user = await User.findOne({ email }).select('+password');
+        const user = await User.findOne({ username }).select('+password');
 
         if (!user) {
             return res.status(401).json({
