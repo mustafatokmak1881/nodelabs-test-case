@@ -5,7 +5,7 @@ const User = require('../models/User');
 // @access  Private (Admin only)
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find({}).select('-password');
+        const users = await User.find({}).select('username -_id');
 
         res.json({
             success: true,

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { getAllUsers } = require('../controllers/userController');
-const { protect, authorize } = require('../middlewares/auth');
+const { protect } = require('../middlewares/auth');
 
-// Protected routes (Admin only)
-router.get('/list', protect, authorize('admin'), getAllUsers);
+// Protected routes (All authenticated users)
+router.get('/list', protect, getAllUsers);
 
 module.exports = router; 
