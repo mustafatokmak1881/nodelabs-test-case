@@ -195,6 +195,177 @@ Bu sayede login sonrası token otomatik olarak environment'a kaydedilir ve diğe
    GET /api/messages/conversation_id
    ```
 
+## 🤖 Otomatik Sistem Süreçleri
+
+Bu bölüm projenin en kritik kısımlarından biridir ve zamanlanmış görev yönetimi ile asenkron işlem becerilerini test etmeyi amaçlar. Sistem, üç ayrı ve yönetilebilir aşamada çalışır: **Planlama**, **Kuyruğa Alma** ve **İşleme**.
+
+### 1. Adım: Mesaj Planlama Servisi (Cron Job - Gece 02:00)
+
+**Amaç:** Aktif kullanıcıları otomatik olarak eşleştirerek gönderilecek mesajları toplu halde hazırlamak.
+
+**İşlem Süreci:**
+- Her gece saat 02:00'da otomatik olarak tetiklenir
+- Veritabanındaki tüm aktif kullanıcıları çeker
+- Kullanıcı listesini rastgele karıştırır (shuffle algoritması)
+- Karıştırılmış listeyi ikişerli gruplara ayırarak (gönderici, alıcı) çiftleri oluşturur
+- Her çift için rastgele mesaj içeriği hazırlar
+- Gönderim için gelecek tarih (sendDate) belirler
+- Tüm bilgileri AutoMessage koleksiyonuna kaydeder
+
+**Manuel Çalıştırma:**
+```bash
+# Docker container içinde
+docker-compose exec app npm run schedule-auto-messages
+
+# Veya doğrudan
+node jobs/scheduleAutoMessages.js
+```
+
+### 2. Adım: Kuyruk Yönetimi Servisi (Worker Cron Job - Dakikada Bir)
+
+**Amaç:** Gönderim zamanı gelen mesajları tespit edip RabbitMQ sistemine yönlendirmek.
+
+**İşlem Süreci:**
+- Her dakika otomatik olarak çalışır
+- AutoMessage koleksiyonunda sendDate'i geçmiş ve isQueued: false olan mesajları arar
+- Tespit edilen mesajları RabbitMQ'daki message_sending_queue kuyruğuna gönderir
+- Aynı mesajın tekrar işlenmemesi için AutoMessage kaydını isQueued: true olarak günceller
+
+**Manuel Çalıştırma:**
+```bash
+# Docker container içinde
+docker-compose exec app npm run queue-auto-messages
+
+# Veya doğrudan
+node jobs/queueAutoMessages.js
+```
+
+### 3. Adım: Mesaj Dağıtım Servisi (RabbitMQ Consumer)
+
+**Amaç:** Kuyruktaki mesajları işleyerek alıcılara ulaştırmak.
+
+**İşlem Süreci:**
+- message_sending_queue kuyruğunu sürekli dinler
+- Kuyruğa gelen görevleri anında alır ve işler
+- Görev bilgilerine göre yeni Message dökümanı oluşturur ve veritabanına kaydeder
+- Socket.IO üzerinden alıcıya message_received eventi ile anlık bildirim gönderir
+- AutoMessage kaydını isSent: true olarak güncelleyerek işlemi tamamlar
+
+**Manuel Çalıştırma:**
+```bash
+# Docker container içinde
+docker-compose exec app npm run consume-auto-messages
+
+# Veya doğrudan
+node jobs/consumeAutoMessages.js
+```
+
+**Sistem Avantajları:**
+Bu üç aşamalı yapı sayesinde görevlerin zamanlanması, işleme alınacakların tespiti ve gerçek gönderim işlemlerinin birbirinden ayrıştırılması sağlanır. Bu yaklaşım ölçeklenebilir, hataya dayanıklı ve yönetilebilir bir otomatik mesajlaşma sistemi oluşturur.
+
+## 👥 Online Kullanıcı Takip Sistemi
+
+Bu sistem Socket.IO ve Redis teknolojilerini kullanarak kullanıcıların online durumlarını gerçek zamanlı olarak takip eder.
+
+### Kullanıcı Bağlantı Yönetimi
+
+**Kullanıcı Sisteme Bağlandığında (connection eventi):**
+- Socket.IO üzerinden gelen bağlantı JWT token ile doğrulanır
+- Kimlik doğrulaması başarılı olan kullanıcı Redis'teki online kullanıcılar listesine (Set veri yapısı) eklenir
+- Diğer kullanıcılara kullanıcının online olduğu bilgisi broadcast edilir
+
+**Kullanıcı Sistemden Ayrıldığında (disconnect eventi):**
+- Bağlantısı kesilen kullanıcının kimliği Redis'teki online listesinden kaldırılır
+- Diğer kullanıcılara kullanıcının offline olduğu bilgisi iletilir
+
+### Online Durum Sorguları
+
+**Anlık Online Kullanıcı Sayısı:**
+```bash
+GET /api/stats/online-users
+```
+Redis'teki online kullanıcılar Set'inin eleman sayısı sorgulanarak anlık online kullanıcı sayısı alınır.
+
+**Belirli Kullanıcının Online Durumu:**
+```bash
+GET /api/stats/user-online/:userId
+```
+Redis Set'inde belirli bir kullanıcı ID'sinin varlığı kontrol edilerek o kullanıcının online/offline durumu tespit edilir.
+
+**Online Kullanıcı Listesi:**
+```bash
+GET /api/stats/online-users-list
+```
+Bir test endpointi ile istatistik amaçlı Redis Set'indeki tüm online kullanıcı ID'leri listelenir.
+
+### API Response Örnekleri
+
+**Online Kullanıcı Sayısı:**
+```json
+{
+  "success": true,
+  "data": {
+    "onlineUsers": 3,
+    "timestamp": "2024-01-01T12:00:00.000Z"
+  }
+}
+```
+
+**Belirli Kullanıcının Online Durumu:**
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "507f1f77bcf86cd799439011",
+    "isOnline": true,
+    "timestamp": "2024-01-01T12:00:00.000Z"
+  }
+}
+```
+
+**Online Kullanıcı Listesi:**
+```json
+{
+  "success": true,
+  "data": {
+    "onlineUsers": ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"],
+    "count": 2,
+    "timestamp": "2024-01-01T12:00:00.000Z"
+  }
+}
+```
+
+### Test Senaryoları
+
+1. **Online Kullanıcı Sayısı Testi:**
+   ```bash
+   # Kullanıcı kaydı yap
+   curl -X POST http://localhost:3000/api/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{"username":"testuser","email":"test@example.com","password":"password123"}'
+   
+   # Login yap ve token al
+   curl -X POST http://localhost:3000/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"username":"testuser","password":"password123"}'
+   
+   # Online kullanıcı sayısını kontrol et
+   curl -H "Authorization: Bearer <token>" \
+     http://localhost:3000/api/stats/online-users
+   ```
+
+2. **Otomatik Mesaj Sistemi Testi:**
+   ```bash
+   # Manuel olarak mesaj planla
+   docker-compose exec app npm run schedule-auto-messages
+   
+   # Kuyruğa al
+   docker-compose exec app npm run queue-auto-messages
+   
+   # Consumer'ı başlat (zaten çalışıyor olmalı)
+   docker-compose exec app npm run consume-auto-messages
+   ```
+
 ## 📁 Proje Yapısı
 
 ```

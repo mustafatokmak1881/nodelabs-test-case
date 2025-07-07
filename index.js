@@ -7,7 +7,7 @@ const cors = require("cors");
 const connectDB = require('./config/database');
 
 // Redis connection
-const { connectRedis, setOnlineUsersCount, getOnlineUsersCount, incrementOnlineUsers, decrementOnlineUsers, resetOnlineUsersCount } = require('./config/redis');
+const { connectRedis, setOnlineUsersCount, getOnlineUsersCount, incrementOnlineUsers, decrementOnlineUsers, resetOnlineUsersCount, addOnlineUser, removeOnlineUser, isUserOnline, getOnlineUsers } = require('./config/redis');
 
 // Constants
 const PORT = process.env.PORT || 3000;
@@ -80,6 +80,20 @@ const syncOnlineUsersCount = async () => {
     }
 };
 
+// Function to sync Redis Set with local online users
+const syncOnlineUsersSet = async () => {
+    try {
+        // Clear Redis Set and add current online users
+        await resetOnlineUsersCount();
+        for (const userId of onlineUsers) {
+            await addOnlineUser(userId);
+        }
+        console.log(`Online users set synced: ${onlineUsers.size} users`);
+    } catch (error) {
+        console.error('Error syncing online users set:', error);
+    }
+};
+
 // Online users count endpoint
 app.get("/api/stats/online-users", async (req, res) => {
     try {
@@ -106,6 +120,57 @@ app.get("/api/stats/online-users", async (req, res) => {
     }
 });
 
+// Online users list endpoint
+app.get("/api/stats/online-users-list", async (req, res) => {
+    try {
+        const onlineUsersList = await getOnlineUsers();
+        res.json({
+            success: true,
+            data: {
+                onlineUsers: onlineUsersList,
+                count: onlineUsersList.length,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Get online users list error:', error);
+        res.json({
+            success: true,
+            data: {
+                onlineUsers: Array.from(onlineUsers),
+                count: onlineUsers.size,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
+
+// Check if specific user is online
+app.get("/api/stats/user-online/:userId", async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const isOnline = await isUserOnline(userId);
+        res.json({
+            success: true,
+            data: {
+                userId,
+                isOnline,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Check user online status error:', error);
+        res.json({
+            success: true,
+            data: {
+                userId: req.params.userId,
+                isOnline: onlineUsers.has(req.params.userId),
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
+
 function verifySocketJWT(socket) {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
     if (!token) throw new Error('No token');
@@ -122,6 +187,7 @@ io.on("connection", async (socket) => {
         if (userId) {
             onlineUsers.add(userId);
             socket.join(`user_${userId}`);
+            await addOnlineUser(userId);
             socket.broadcast.emit('user_online', { userId });
             // Sync Redis with actual count
             await syncOnlineUsersCount();
@@ -136,6 +202,7 @@ io.on("connection", async (socket) => {
     socket.on("disconnect", async () => {
         if (userId) {
             onlineUsers.delete(userId);
+            await removeOnlineUser(userId);
             socket.broadcast.emit('user_offline', { userId });
             // Sync Redis with actual count
             await syncOnlineUsersCount();

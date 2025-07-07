@@ -16,8 +16,9 @@ const connectRedis = async () => {
     }
 };
 
-// Online users count management
+// Online users management
 const ONLINE_USERS_KEY = 'online_users_count';
+const ONLINE_USERS_SET = 'online_users_set';
 
 // Set online users count
 const setOnlineUsersCount = async (count) => {
@@ -73,9 +74,52 @@ const decrementOnlineUsers = async () => {
 const resetOnlineUsersCount = async () => {
     try {
         await redisClient.set(ONLINE_USERS_KEY, '0');
-        console.log('Online users count reset to 0');
+        await redisClient.del(ONLINE_USERS_SET);
+        console.log('Online users count and set reset to 0');
     } catch (error) {
         console.error('Error resetting online users count:', error);
+    }
+};
+
+// Add user to online users set
+const addOnlineUser = async (userId) => {
+    try {
+        await redisClient.sAdd(ONLINE_USERS_SET, userId.toString());
+        console.log(`User ${userId} added to online users set`);
+    } catch (error) {
+        console.error('Error adding user to online users set:', error);
+    }
+};
+
+// Remove user from online users set
+const removeOnlineUser = async (userId) => {
+    try {
+        await redisClient.sRem(ONLINE_USERS_SET, userId.toString());
+        console.log(`User ${userId} removed from online users set`);
+    } catch (error) {
+        console.error('Error removing user from online users set:', error);
+    }
+};
+
+// Check if user is online
+const isUserOnline = async (userId) => {
+    try {
+        const isOnline = await redisClient.sIsMember(ONLINE_USERS_SET, userId.toString());
+        return isOnline;
+    } catch (error) {
+        console.error('Error checking if user is online:', error);
+        return false;
+    }
+};
+
+// Get all online users
+const getOnlineUsers = async () => {
+    try {
+        const users = await redisClient.sMembers(ONLINE_USERS_SET);
+        return users;
+    } catch (error) {
+        console.error('Error getting online users:', error);
+        return [];
     }
 };
 
@@ -86,5 +130,9 @@ module.exports = {
     getOnlineUsersCount,
     incrementOnlineUsers,
     decrementOnlineUsers,
-    resetOnlineUsersCount
+    resetOnlineUsersCount,
+    addOnlineUser,
+    removeOnlineUser,
+    isUserOnline,
+    getOnlineUsers
 }; 
