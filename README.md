@@ -12,7 +12,7 @@ Bu proje Express.js, Socket.IO, MongoDB, Redis ve RabbitMQ kullanarak geliştiri
 
 1. **Projeyi klonlayın:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/mustafatokmak1881/nodelabs-test-case.git
 cd nodelabs-test-case
 ```
 
