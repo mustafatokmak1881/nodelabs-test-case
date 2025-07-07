@@ -7,7 +7,7 @@ const cors = require("cors");
 const connectDB = require('./config/database');
 
 // Redis connection
-const { connectRedis, setOnlineUsersCount, getOnlineUsersCount, incrementOnlineUsers, decrementOnlineUsers } = require('./config/redis');
+const { connectRedis, setOnlineUsersCount, getOnlineUsersCount, incrementOnlineUsers, decrementOnlineUsers, resetOnlineUsersCount } = require('./config/redis');
 
 // Constants
 const PORT = process.env.PORT || 3000;
@@ -163,6 +163,37 @@ require('./jobs/scheduleAutoMessages');
 require('./jobs/queueAutoMessages');
 setSocketIO(io);
 startConsumer();
+
+// Graceful shutdown handler
+const gracefulShutdown = async (signal) => {
+    console.log(`\nReceived ${signal}. Starting graceful shutdown...`);
+    
+    try {
+        // Reset online users count to 0
+        await resetOnlineUsersCount();
+        console.log('Online users count reset to 0');
+        
+        // Close server
+        server.close(() => {
+            console.log('HTTP server closed');
+            process.exit(0);
+        });
+        
+        // Force exit after 10 seconds if graceful shutdown fails
+        setTimeout(() => {
+            console.error('Could not close connections in time, forcefully shutting down');
+            process.exit(1);
+        }, 10000);
+        
+    } catch (error) {
+        console.error('Error during graceful shutdown:', error);
+        process.exit(1);
+    }
+};
+
+// Listen for shutdown signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Listen   
 server.listen(PORT, () => {
