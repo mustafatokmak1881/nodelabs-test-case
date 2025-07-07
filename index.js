@@ -24,7 +24,11 @@ const io = require("socket.io")(server, {
 connectDB();
 
 // Connect to Redis
-connectRedis();
+connectRedis().then(async () => {
+    // Reset online users count on server start
+    await resetOnlineUsersCount();
+    console.log('Online users count reset to 0 on server start');
+});
 
 // Middleware Files
 const authRoutes = require("./routes/auth.route");
@@ -58,25 +62,29 @@ app.get("/health", (req, res) => {
 // Online users tracking
 const onlineUsers = new Set();
 
-// Function to emit online users count
-const emitOnlineUsersCount = async () => {
+// Function to sync Redis with actual online users count
+const syncOnlineUsersCount = async () => {
     try {
-        const count = await getOnlineUsersCount();
-        io.emit('online_users_count', { count });
-        console.log(`Online users: ${count}`);
+        const actualCount = onlineUsers.size;
+        await setOnlineUsersCount(actualCount);
+        io.emit('online_users_count', { count: actualCount });
+        console.log(`Online users synced: ${actualCount}`);
+        return actualCount;
     } catch (error) {
-        console.error('Error emitting online users count:', error);
+        console.error('Error syncing online users count:', error);
         // Fallback to local count if Redis fails
         const localCount = onlineUsers.size;
         io.emit('online_users_count', { count: localCount });
         console.log(`Online users (fallback): ${localCount}`);
+        return localCount;
     }
 };
 
 // Online users count endpoint
 app.get("/api/stats/online-users", async (req, res) => {
     try {
-        const count = await getOnlineUsersCount();
+        // Sync Redis with actual count first
+        const count = await syncOnlineUsersCount();
         res.json({
             success: true,
             data: {
@@ -114,9 +122,9 @@ io.on("connection", async (socket) => {
         if (userId) {
             onlineUsers.add(userId);
             socket.join(`user_${userId}`);
-            await incrementOnlineUsers();
             socket.broadcast.emit('user_online', { userId });
-            await emitOnlineUsersCount();
+            // Sync Redis with actual count
+            await syncOnlineUsersCount();
         }
     } catch (e) {
         console.log('Socket auth error:', e.message);
@@ -128,9 +136,9 @@ io.on("connection", async (socket) => {
     socket.on("disconnect", async () => {
         if (userId) {
             onlineUsers.delete(userId);
-            await decrementOnlineUsers();
             socket.broadcast.emit('user_offline', { userId });
-            await emitOnlineUsersCount();
+            // Sync Redis with actual count
+            await syncOnlineUsersCount();
         }
         console.log("User disconnected");
     });
