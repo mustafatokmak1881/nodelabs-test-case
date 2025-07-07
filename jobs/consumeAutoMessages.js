@@ -16,7 +16,10 @@ function setSocketIO(socketIO) {
 
 async function processMessage(messageData) {
   try {
-    await mongoose.connect(MONGO_URI);
+    // MongoDB bağlantı durumunu kontrol et
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(MONGO_URI);
+    }
     
     const { autoMessageId, senderId, recipientId, content } = messageData;
     
@@ -63,8 +66,6 @@ async function processMessage(messageData) {
     
   } catch (error) {
     console.error('Mesaj işleme hatası:', error);
-  } finally {
-    await mongoose.disconnect();
   }
 }
 
