@@ -3,7 +3,7 @@ const cron = require('node-cron');
 const User = require('../models/User');
 const AutoMessage = require('../models/AutoMessage');
 
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://admin:password123@localhost:27017/nodelabs?authSource=admin';
+const MONGO_URI = process.env.MONGODB_URI;
 
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {

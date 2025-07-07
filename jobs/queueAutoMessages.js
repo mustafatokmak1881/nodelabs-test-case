@@ -4,7 +4,7 @@ const amqp = require('amqplib');
 const AutoMessage = require('../models/AutoMessage');
 const User = require('../models/User');
 
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://admin:password123@localhost:27017/nodelabs?authSource=admin';
+const MONGO_URI = process.env.MONGODB_URI;
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://admin:password123@localhost:5672';
 
 async function queueMessages() {

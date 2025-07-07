@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const AutoMessage = require('./models/AutoMessage');
 const User = require('./models/User');
 
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://admin:password123@localhost:27017/nodelabs?authSource=admin';
+const MONGO_URI = process.env.MONGODB_URI;
 
 async function main() {
   await mongoose.connect(MONGO_URI);

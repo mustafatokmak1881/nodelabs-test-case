@@ -3,7 +3,7 @@ const AutoMessage = require('./models/AutoMessage');
 const Message = require('./models/Message');
 const User = require('./models/User');
 
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://admin:password123@localhost:27017/nodelabs?authSource=admin';
+const MONGO_URI = process.env.MONGODB_URI;
 
 async function testFullSystem() {
   await mongoose.connect(MONGO_URI);
