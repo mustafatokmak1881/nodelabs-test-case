@@ -33,8 +33,10 @@ docker-compose logs -f app
 
 ### Erişim Bilgileri
 
-- **Node.js Uygulaması:** http://localhost:3000
-- **Frontend:** http://localhost:3000 (aynı port)
+- **Ana Uygulama (Frontend + Backend):** http://localhost:3000
+  - Frontend ve backend aynı port üzerinden serve edilir
+  - API endpoint'leri: http://localhost:3000/api
+  - Swagger Dokümantasyonu: http://localhost:3000/api-docs
 - **RabbitMQ Management:** http://localhost:15672
   - Kullanıcı adı: `admin`
   - Şifre: `password123`
@@ -68,6 +70,11 @@ docker-compose up --build
 
 ## 🌐 Frontend Özellikleri
 
+### Tek Sayfa Uygulaması (SPA)
+- **Unified Application**: Frontend ve backend aynı port üzerinden serve edilir
+- **Single Entry Point**: http://localhost:3000 adresinden tüm uygulamaya erişim
+- **SPA Routing**: Tüm route'lar frontend tarafından handle edilir
+
 ### Real-time Mesajlaşma
 - **Socket.IO entegrasyonu**: Anlık mesaj gönderme/alma
 - **Online/Offline durumu**: Kullanıcıların bağlantı durumu
@@ -85,6 +92,11 @@ docker-compose up --build
 - **JWT authentication**: Güvenli token tabanlı kimlik doğrulama
 - **Kullanıcı filtreleme**: Kullanıcı listesinde kendiniz görünmez
 - **Otomatik token yenileme**: Token süresi dolduğunda otomatik yenileme
+
+### API Entegrasyonu
+- **RESTful API**: Tüm frontend işlemleri backend API'si üzerinden yapılır
+- **Swagger Desteği**: API dokümantasyonu http://localhost:3000/api-docs adresinden erişilebilir
+- **Error Handling**: Kapsamlı hata yönetimi ve kullanıcı bildirimleri
 
 ## 📋 Postman Collection
 
@@ -132,11 +144,13 @@ Projenin tüm API uç noktalarını interaktif olarak incelemek ve test etmek i�
 ### Swagger UI'ya Erişim
 
 - Tarayıcıdan şu adrese gidin: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- Veya ana uygulama üzerinden: http://localhost:3000 → API Documentation linki
 
 ### Özellikler
 - Tüm endpoint'ler, parametreler, örnek istek/yanıtlar ve model şemaları interaktif olarak görüntülenebilir.
 - JWT Bearer token ile korunan endpoint'ler için "Authorize" butonunu kullanarak token ile test yapabilirsiniz.
 - Her endpoint için açıklama, örnek, hata durumları ve model referansları Swagger arayüzünde yer alır.
+- Frontend ve backend aynı port üzerinden serve edildiği için CORS sorunları yaşanmaz.
 
 ### Kullanım Adımları
 1. Sunucuyu başlatın (`docker-compose up` veya `npm start`)

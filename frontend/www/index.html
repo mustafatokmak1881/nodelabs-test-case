@@ -363,6 +363,9 @@
                         </span>
                         <span class="text-light me-2">@<span id="currentUsername"></span></span>
                         <span id="currentUserRole" class="user-role"></span>
+                        <a href="/api-docs" target="_blank" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-file-text"></i> API Docs
+                        </a>
                         <button class="btn btn-outline-light btn-sm" onclick="showUserList()">
                             <i class="bi bi-people"></i> Kullanıcılar
                         </button>
@@ -479,7 +482,7 @@
         let newMessageAlertTimeout = null;
 
         // API Base URL
-        const API_BASE = 'http://localhost:3000/api';
+        const API_BASE = '/api';
 
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
@@ -625,7 +628,7 @@
 
         // Initialize Socket.IO connection
         function initializeSocket() {
-            socket = io('http://localhost:3000', {
+            socket = io('/', {
                 auth: {
                     token: authToken
                 }

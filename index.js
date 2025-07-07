@@ -43,6 +43,14 @@ const apiLimiter = require('./middlewares/rateLimit');
 app.use(express.json());
 app.use(cors());
 
+// Serve static files from frontend/www directory
+app.use(express.static('frontend/www'));
+
+// Root route to serve frontend
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/frontend/www/index.html');
+});
+
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
   customCss: '.swagger-ui .topbar { display: none }',
@@ -352,12 +360,17 @@ app.use((err, req, res, next) => {
     });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found'
-    });
+// Serve frontend for all non-API routes
+app.get('*', (req, res) => {
+    // Don't serve frontend for API routes
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+        return res.status(404).json({
+            success: false,
+            message: 'Route not found'
+        });
+    }
+    // Serve the frontend for all other routes
+    res.sendFile('index.html', { root: 'frontend/www' });
 });
 
 // RabbitMQ Consumer'ı başlat
