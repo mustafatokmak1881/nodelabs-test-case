@@ -2,6 +2,8 @@
 const http = require("http");
 const express = require("express");
 const cors = require("cors");
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swagger');
 
 // Database connection
 const connectDB = require('./config/database');
@@ -41,6 +43,12 @@ const apiLimiter = require('./middlewares/rateLimit');
 app.use(express.json());
 app.use(cors());
 
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'NodeLabs Test Case API Documentation'
+}));
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
@@ -50,7 +58,31 @@ app.use("/api/conversations", conversationRoutes);
 // Rate limiting middleware (sadece API için)
 app.use('/api', apiLimiter);
 
-// Health check endpoint
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health check endpoint
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server health status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Server is running
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2024-01-01T12:00:00.000Z
+ */
 app.get("/health", (req, res) => {
     res.json({
         success: true,
@@ -94,7 +126,34 @@ const syncOnlineUsersSet = async () => {
     }
 };
 
-// Online users count endpoint
+/**
+ * @swagger
+ * /api/stats/online-users:
+ *   get:
+ *     summary: Get online users count
+ *     tags: [Statistics]
+ *     responses:
+ *       200:
+ *         description: Online users count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     onlineUsers:
+ *                       type: integer
+ *                       example: 5
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2024-01-01T12:00:00.000Z
+ */
 app.get("/api/stats/online-users", async (req, res) => {
     try {
         // Sync Redis with actual count first
@@ -120,7 +179,39 @@ app.get("/api/stats/online-users", async (req, res) => {
     }
 });
 
-// Online users list endpoint
+/**
+ * @swagger
+ * /api/stats/online-users-list:
+ *   get:
+ *     summary: Get online users list
+ *     tags: [Statistics]
+ *     responses:
+ *       200:
+ *         description: Online users list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     onlineUsers:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
+ *                     count:
+ *                       type: integer
+ *                       example: 2
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2024-01-01T12:00:00.000Z
+ */
 app.get("/api/stats/online-users-list", async (req, res) => {
     try {
         const onlineUsersList = await getOnlineUsers();
@@ -145,7 +236,44 @@ app.get("/api/stats/online-users-list", async (req, res) => {
     }
 });
 
-// Check if specific user is online
+/**
+ * @swagger
+ * /api/stats/user-online/{userId}:
+ *   get:
+ *     summary: Check if specific user is online
+ *     tags: [Statistics]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID to check
+ *     responses:
+ *       200:
+ *         description: User online status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                       example: 507f1f77bcf86cd799439011
+ *                     isOnline:
+ *                       type: boolean
+ *                       example: true
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       example: 2024-01-01T12:00:00.000Z
+ */
 app.get("/api/stats/user-online/:userId", async (req, res) => {
     try {
         const { userId } = req.params;

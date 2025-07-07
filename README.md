@@ -125,6 +125,26 @@ Postman collection'ında Login ve Refresh Token endpoint'lerine otomatik token y
 
 Bu sayede login sonrası token otomatik olarak environment'a kaydedilir ve diğer endpoint'lerde kullanılır.
 
+## 📝 Swagger API Dokümantasyonu
+
+Projenin tüm API uç noktalarını interaktif olarak incelemek ve test etmek için Swagger/OpenAPI arayüzünü kullanabilirsiniz.
+
+### Swagger UI'ya Erişim
+
+- Tarayıcıdan şu adrese gidin: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+
+### Özellikler
+- Tüm endpoint'ler, parametreler, örnek istek/yanıtlar ve model şemaları interaktif olarak görüntülenebilir.
+- JWT Bearer token ile korunan endpoint'ler için "Authorize" butonunu kullanarak token ile test yapabilirsiniz.
+- Her endpoint için açıklama, örnek, hata durumları ve model referansları Swagger arayüzünde yer alır.
+
+### Kullanım Adımları
+1. Sunucuyu başlatın (`docker-compose up` veya `npm start`)
+2. Tarayıcıda [http://localhost:3000/api-docs](http://localhost:3000/api-docs) adresine gidin
+3. İlgili endpoint'i seçin, parametreleri doldurun ve "Try it out" ile test edin
+
+Swagger/OpenAPI dokümantasyonu sayesinde API'nizi kolayca keşfedebilir ve test edebilirsiniz.
+
 ## 📨 Mesaj Yönetimi API'leri
 
 ### Endpoint'ler
