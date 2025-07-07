@@ -54,7 +54,7 @@ async function scheduleMessages() {
 
 // Gerçek cron: '0 2 * * *' (her gece 02:00)
 if (process.env.NODE_ENV !== 'test') {
-  cron.schedule('* * * * *', scheduleMessages);
+  cron.schedule('0 2 * * *', scheduleMessages);
 }
 
 // Manuel test için
