@@ -6,7 +6,7 @@ const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 
 const MONGO_URI = process.env.MONGODB_URI;
-const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://admin:password123@localhost:5672';
+const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://admin:password123@rabbitmq:5672';
 
 let io = null;
 
